@@ -5,12 +5,18 @@ import cv2
 import mediapipe as mp
 
 
+class DrawData:
+	def __init__(self) -> None:
+		self.color=(255,255,255)
+		self.drawflag=0
+
 #mediapipe処理
 class HandDetector:
 	def __init__(self, max_num_hands=12, min_detection_confidence=0.5, min_tracking_confidence=0.5) -> None:
 		self.hands = mp.solutions.hands.Hands(max_num_hands=max_num_hands, min_detection_confidence=min_detection_confidence,
                                    min_tracking_confidence=min_tracking_confidence)
-		self.line_list = [[0 for i in range(2000)] for j in range(2000)]
+		self.line_list = [[DrawData() for i in range(2000)] for j in range(2000)]
+		self.color=(100,255,100)
 	def findHandLandMarks(self, image):
 		image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 		results = self.hands.process(image_rgb)
@@ -48,23 +54,24 @@ class HandDetector:
 						x=landMarkList[8][1]
 						y=landMarkList[8][2]
 					if count > 1:
-						self.line_list[y][x]=1
+						self.line_list[y][x].drawflag = 1
+						self.line_list[y][x].color=self.color
 		
 		for i in range(self.imgH):
 			for j in range(self.imgW):
-				if(self.line_list[i][j]):
-					cv2.circle(image, (j, i), 10, (255, 255, 255), thickness=-1)
+				if(self.line_list[i][j].drawflag):
+					cv2.circle(image, (j, i), 10, self.line_list[i][j].color, thickness=-1)
 		
 		
 		return cv2.flip(image, 1)
 
-					
+		
 
 #recv関数でフレーム毎に画像を返す
 class VideoProcessor:
 	def __init__(self) -> None:
 		self.color=(255, 255, 255)
-		self.handDetector = HandDetector(min_detection_confidence=0.7)
+		self.handDetector = HandDetector(min_detection_confidence=0.7)	
 	
 	def recv(self,frame):
 		image = frame.to_ndarray(format="bgr24")
@@ -75,3 +82,9 @@ class VideoProcessor:
 if __name__ == "__main__":
 	st.title("My first Streamlit app2")
 	ctx = webrtc_streamer(key="example", video_processor_factory=VideoProcessor)
+	if st.button("赤", key=0):
+		ctx.video_processor.handDetector.color=(250,0,0)
+	if st.button("緑", key=1):
+		ctx.video_processor.handDetector.color=(100,128,100)
+	if st.button("白", key=2):
+		ctx.video_processor.handDetector.color=(255,255,255)
